@@ -95,7 +95,8 @@ public class SavingsAccountsApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve Savings Account Template", description = "This is a convenience resource. It can be useful when building maintenance user interface screens for client applications. The template data returned consists of any or all of:\n"
-            + "\n" + "Field Defaults\n" + "Allowed Value Lists\n\n" + "Example Requests:\n" + "\n" + "savingsaccounts/template?clientId=1\n"
+            + "\n" + "Field Defaults\n" + "Allowed Value Lists\n\n" + "Example Requests:\n" + "\n"
+            + "savingsaccounts/template?clientId=1\n"
             + "\n" + "\n" + "savingsaccounts/template?clientId=1&productId=1")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsAccountsApiResourceSwagger.GetSavingsAccountsTemplateResponse.class))) })
@@ -107,11 +108,14 @@ public class SavingsAccountsApiResource {
 
         context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
-        final SavingsAccountData savingsAccount = savingsAccountReadPlatformService.retrieveTemplate(clientId, groupId, productId,
+        final SavingsAccountData savingsAccount = savingsAccountReadPlatformService.retrieveTemplate(clientId, groupId,
+                productId,
                 staffInSelectedOfficeOnly);
 
-        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        return toApiJsonSerializer.serialize(settings, savingsAccount, SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
+        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper
+                .process(uriInfo.getQueryParameters());
+        return toApiJsonSerializer.serialize(settings, savingsAccount,
+                SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
     }
 
     @GET
@@ -124,6 +128,8 @@ public class SavingsAccountsApiResource {
     public String retrieveAll(@Context final UriInfo uriInfo,
             @QueryParam("sqlSearch") @Parameter(description = "sqlSearch") final String sqlSearch,
             @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
+            @QueryParam("birthMonth") @Parameter(description = "birthMonth") final Integer birthMonth,
+            @QueryParam("birthDay") @Parameter(description = "birthDay") final Integer birthDay,
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
             @QueryParam("limit") @Parameter(description = "limit") final Integer limit,
@@ -132,12 +138,15 @@ public class SavingsAccountsApiResource {
 
         context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
-        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder);
+        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit,
+                orderBy, sortOrder, birthMonth, birthDay);
 
         final Page<SavingsAccountData> products = savingsAccountReadPlatformService.retrieveAll(searchParameters);
 
-        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        return toApiJsonSerializer.serialize(settings, products, SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
+        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper
+                .process(uriInfo.getQueryParameters());
+        return toApiJsonSerializer.serialize(settings, products,
+                SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
     }
 
     @POST
@@ -153,7 +162,8 @@ public class SavingsAccountsApiResource {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsAccountsApiResourceSwagger.PostSavingsAccountsResponse.class))) })
     public String submitApplication(@Parameter(hidden = true) final String apiRequestBodyAsJson) {
 
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createSavingsAccount().withJson(apiRequestBodyAsJson).build();
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createSavingsAccount()
+                .withJson(apiRequestBodyAsJson).build();
 
         final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
@@ -166,7 +176,8 @@ public class SavingsAccountsApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String submitGSIMApplication(final String apiRequestBodyAsJson) {
 
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createGSIMAccount().withJson(apiRequestBodyAsJson).build();
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createGSIMAccount()
+                .withJson(apiRequestBodyAsJson).build();
 
         final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
@@ -178,7 +189,8 @@ public class SavingsAccountsApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve a savings application/account", description = "Retrieves a savings application/account\n\n"
-            + "Example Requests :\n" + "\n" + "savingsaccounts/1\n" + "\n" + "\n" + "savingsaccounts/1?associations=all")
+            + "Example Requests :\n" + "\n" + "savingsaccounts/1\n" + "\n" + "\n"
+            + "savingsaccounts/1?associations=all")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsAccountsApiResourceSwagger.GetSavingsAccountsAccountIdResponse.class))) })
     public String retrieveOne(@PathParam("accountId") @Parameter(description = "accountId") final Long accountId,
@@ -189,7 +201,8 @@ public class SavingsAccountsApiResource {
         context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
         if (!(is(chargeStatus, "all") || is(chargeStatus, "active") || is(chargeStatus, "inactive"))) {
-            throw new UnrecognizedQueryParamException("status", chargeStatus, new Object[] { "all", "active", "inactive" });
+            throw new UnrecognizedQueryParamException("status", chargeStatus,
+                    new Object[] { "all", "active", "inactive" });
         }
 
         final SavingsAccountData savingsAccount = savingsAccountReadPlatformService.retrieveOne(accountId);
@@ -198,24 +211,28 @@ public class SavingsAccountsApiResource {
         final SavingsAccountData savingsAccountTemplate = populateTemplateAndAssociations(accountId, savingsAccount,
                 staffInSelectedOfficeOnly, chargeStatus, uriInfo, mandatoryResponseParameters);
 
-        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters(),
+        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(
+                uriInfo.getQueryParameters(),
                 mandatoryResponseParameters);
         return toApiJsonSerializer.serialize(settings, savingsAccountTemplate,
                 SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
     }
 
-    private SavingsAccountData populateTemplateAndAssociations(final Long accountId, final SavingsAccountData savingsAccount,
+    private SavingsAccountData populateTemplateAndAssociations(final Long accountId,
+            final SavingsAccountData savingsAccount,
             final boolean staffInSelectedOfficeOnly, final String chargeStatus, final UriInfo uriInfo,
             final Set<String> mandatoryResponseParameters) {
 
         Collection<SavingsAccountTransactionData> transactions = null;
         Collection<SavingsAccountChargeData> charges = null;
 
-        final Set<String> associationParameters = ApiParameterHelper.extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
+        final Set<String> associationParameters = ApiParameterHelper
+                .extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
         if (!associationParameters.isEmpty()) {
 
             if (associationParameters.contains("all")) {
-                associationParameters.addAll(Arrays.asList(SavingsApiConstants.transactions, SavingsApiConstants.charges));
+                associationParameters
+                        .addAll(Arrays.asList(SavingsApiConstants.transactions, SavingsApiConstants.charges));
             }
 
             if (associationParameters.contains(SavingsApiConstants.transactions)) {
@@ -238,9 +255,11 @@ public class SavingsAccountsApiResource {
         }
 
         SavingsAccountData templateData = null;
-        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper
+                .process(uriInfo.getQueryParameters());
         if (settings.isTemplate()) {
-            templateData = savingsAccountReadPlatformService.retrieveTemplate(savingsAccount.getClientId(), savingsAccount.getGroupId(),
+            templateData = savingsAccountReadPlatformService.retrieveTemplate(savingsAccount.getClientId(),
+                    savingsAccount.getGroupId(),
                     savingsAccount.getSavingsProductId(), staffInSelectedOfficeOnly);
         }
 
@@ -264,13 +283,15 @@ public class SavingsAccountsApiResource {
             @QueryParam("command") @Parameter(description = "command") final String commandParam) {
 
         if (is(commandParam, "updateWithHoldTax")) {
-            final CommandWrapper commandRequest = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson).updateWithHoldTax(accountId)
+            final CommandWrapper commandRequest = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson)
+                    .updateWithHoldTax(accountId)
                     .build();
             final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
             return toApiJsonSerializer.serialize(result);
         }
 
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSavingsAccount(accountId).withJson(apiRequestBodyAsJson)
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSavingsAccount(accountId)
+                .withJson(apiRequestBodyAsJson)
                 .build();
 
         final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
@@ -282,8 +303,10 @@ public class SavingsAccountsApiResource {
     @Path("/gsim/{parentAccountId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String updateGsim(@PathParam("parentAccountId") final Long parentAccountId, final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateGSIMAccount(parentAccountId).withJson(apiRequestBodyAsJson)
+    public String updateGsim(@PathParam("parentAccountId") final Long parentAccountId,
+            final String apiRequestBodyAsJson) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateGSIMAccount(parentAccountId)
+                .withJson(apiRequestBodyAsJson)
                 .build();
 
         final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
@@ -322,7 +345,8 @@ public class SavingsAccountsApiResource {
             final CommandWrapper commandRequest = builder.gsimAccountActivation(parentAccountId).build();
             result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
         } else if (is(commandParam, "calculateInterest")) {
-            final CommandWrapper commandRequest = builder.withNoJsonBody().savingsAccountInterestCalculation(parentAccountId).build();
+            final CommandWrapper commandRequest = builder.withNoJsonBody()
+                    .savingsAccountInterestCalculation(parentAccountId).build();
             result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
         } else if (is(commandParam, "postInterest")) {
             final CommandWrapper commandRequest = builder.savingsAccountInterestPosting(parentAccountId).build();
@@ -336,7 +360,8 @@ public class SavingsAccountsApiResource {
         }
         if (result == null) {
             throw new UnrecognizedQueryParamException("command", commandParam,
-                    new Object[] { "reject", "withdrawnByApplicant", "approve", "undoapproval", "activate", "calculateInterest",
+                    new Object[] { "reject", "withdrawnByApplicant", "approve", "undoapproval", "activate",
+                            "calculateInterest",
                             "postInterest", "close", "assignSavingsOfficer", "unassignSavingsOfficer",
                             SavingsApiConstants.COMMAND_BLOCK_DEBIT, SavingsApiConstants.COMMAND_UNBLOCK_DEBIT,
                             SavingsApiConstants.COMMAND_BLOCK_CREDIT, SavingsApiConstants.COMMAND_UNBLOCK_CREDIT,
@@ -353,7 +378,8 @@ public class SavingsAccountsApiResource {
     @Operation(summary = "Approve savings application | Undo approval savings application | Assign Savings Officer | Unassign Savings Officer | Reject savings application | Withdraw savings application | Activate a savings account | Close a savings account | Calculate Interest on Savings Account | Post Interest on Savings Account | Block Savings Account | Unblock Savings Account | Block Savings Account Credit transactions | Unblock Savings Account Credit transactions | Block Savings Account Debit transactions | Unblock Savings Account debit transactions", description = "Approve savings application:\n\n"
             + "Approves savings application so long as its in 'Submitted and pending approval' state.\n\n"
             + "Undo approval savings application:\n\n"
-            + "Will move 'approved' savings application back to 'Submitted and pending approval' state.\n\n" + "Assign Savings Officer:\n\n"
+            + "Will move 'approved' savings application back to 'Submitted and pending approval' state.\n\n"
+            + "Assign Savings Officer:\n\n"
             + "Allows you to assign Savings Officer for existing Savings Account.\n\n" + "Unassign Savings Officer:\n\n"
             + "Allows you to unassign the Savings Officer.\n\n" + "Reject savings application:\n\n"
             + "Rejects savings application so long as its in 'Submitted and pending approval' state.\n\n"
@@ -371,14 +397,16 @@ public class SavingsAccountsApiResource {
             + "Calculates interest earned on a savings account based on todays date. It does not attempt to post or credit the interest on the account. That is responsibility of the Post Interest API that will likely be called by overnight process.\n\n"
             + "Post Interest on Savings Account:\n\n"
             + "Calculates and Posts interest earned on a savings account based on today's date and whether an interest posting or crediting event is due.\n\n"
-            + "Block Savings Account:\n\n" + "Blocks Savings account from all types of credit and debit transactions\n\n"
+            + "Block Savings Account:\n\n"
+            + "Blocks Savings account from all types of credit and debit transactions\n\n"
             + "Unblock Savings Account:\n\n"
             + "Unblock a blocked account. On unblocking account, user can perform debit and credit transactions\n\n"
             + "Block Savings Account Credit transactions:\n\n"
             + "Savings account will be blocked from all types of credit transactions.\n\n"
             + "Unblock Savings Account Credit transactions:\n\n"
             + "It unblocks the Saving account's credit operations. Now all types of credits can be transacted to Savings account\n\n"
-            + "Block Savings Account Debit transactions:\n\n" + "All types of debit operations from Savings account wil be blocked\n\n"
+            + "Block Savings Account Debit transactions:\n\n"
+            + "All types of debit operations from Savings account wil be blocked\n\n"
             + "Unblock Savings Account debit transactions:\n\n"
             + "It unblocks the Saving account's debit operations. Now all types of debits can be transacted from Savings account\n\n"
             + "Showing request/response for 'Unassign Savings Officer'")
@@ -413,7 +441,8 @@ public class SavingsAccountsApiResource {
             final CommandWrapper commandRequest = builder.savingsAccountActivation(accountId).build();
             result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
         } else if (is(commandParam, "calculateInterest")) {
-            final CommandWrapper commandRequest = builder.withNoJsonBody().savingsAccountInterestCalculation(accountId).build();
+            final CommandWrapper commandRequest = builder.withNoJsonBody().savingsAccountInterestCalculation(accountId)
+                    .build();
             result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
         } else if (is(commandParam, "postInterest")) {
             final CommandWrapper commandRequest = builder.savingsAccountInterestPosting(accountId).build();
@@ -455,7 +484,8 @@ public class SavingsAccountsApiResource {
         if (result == null) {
             //
             throw new UnrecognizedQueryParamException("command", commandParam,
-                    new Object[] { "reject", "withdrawnByApplicant", "approve", "undoapproval", "activate", "calculateInterest",
+                    new Object[] { "reject", "withdrawnByApplicant", "approve", "undoapproval", "activate",
+                            "calculateInterest",
                             "postInterest", "close", "assignSavingsOfficer", "unassignSavingsOfficer",
                             SavingsApiConstants.COMMAND_BLOCK_DEBIT, SavingsApiConstants.COMMAND_UNBLOCK_DEBIT,
                             SavingsApiConstants.COMMAND_BLOCK_CREDIT, SavingsApiConstants.COMMAND_UNBLOCK_CREDIT,
@@ -488,9 +518,11 @@ public class SavingsAccountsApiResource {
     @GET
     @Path("downloadtemplate")
     @Produces("application/vnd.ms-excel")
-    public Response getSavingsTemplate(@QueryParam("officeId") final Long officeId, @QueryParam("staffId") final Long staffId,
+    public Response getSavingsTemplate(@QueryParam("officeId") final Long officeId,
+            @QueryParam("staffId") final Long staffId,
             @QueryParam("dateFormat") final String dateFormat) {
-        return bulkImportWorkbookPopulatorService.getTemplate(GlobalEntityType.SAVINGS_ACCOUNT.toString(), officeId, staffId, dateFormat);
+        return bulkImportWorkbookPopulatorService.getTemplate(GlobalEntityType.SAVINGS_ACCOUNT.toString(), officeId,
+                staffId, dateFormat);
     }
 
     @POST
@@ -501,7 +533,8 @@ public class SavingsAccountsApiResource {
     public String postSavingsTemplate(@FormDataParam("file") InputStream uploadedInputStream,
             @FormDataParam("file") FormDataContentDisposition fileDetail, @FormDataParam("locale") final String locale,
             @FormDataParam("dateFormat") final String dateFormat) {
-        final Long importDocumentId = bulkImportWorkbookService.importWorkbook(GlobalEntityType.SAVINGS_ACCOUNT.toString(),
+        final Long importDocumentId = bulkImportWorkbookService.importWorkbook(
+                GlobalEntityType.SAVINGS_ACCOUNT.toString(),
                 uploadedInputStream, fileDetail, locale, dateFormat);
         return toApiJsonSerializer.serialize(importDocumentId);
     }
@@ -511,7 +544,8 @@ public class SavingsAccountsApiResource {
     @Produces("application/vnd.ms-excel")
     public Response getSavingsTransactionTemplate(@QueryParam("officeId") final Long officeId,
             @QueryParam("dateFormat") final String dateFormat) {
-        return bulkImportWorkbookPopulatorService.getTemplate(GlobalEntityType.SAVINGS_TRANSACTIONS.toString(), officeId, null, dateFormat);
+        return bulkImportWorkbookPopulatorService.getTemplate(GlobalEntityType.SAVINGS_TRANSACTIONS.toString(),
+                officeId, null, dateFormat);
     }
 
     @POST
@@ -522,7 +556,8 @@ public class SavingsAccountsApiResource {
     public String postSavingsTransactionTemplate(@FormDataParam("file") InputStream uploadedInputStream,
             @FormDataParam("file") FormDataContentDisposition fileDetail, @FormDataParam("locale") final String locale,
             @FormDataParam("dateFormat") final String dateFormat) {
-        final Long importDocumentId = bulkImportWorkbookService.importWorkbook(GlobalEntityType.SAVINGS_TRANSACTIONS.toString(),
+        final Long importDocumentId = bulkImportWorkbookService.importWorkbook(
+                GlobalEntityType.SAVINGS_TRANSACTIONS.toString(),
                 uploadedInputStream, fileDetail, locale, dateFormat);
         return toApiJsonSerializer.serialize(importDocumentId);
     }
