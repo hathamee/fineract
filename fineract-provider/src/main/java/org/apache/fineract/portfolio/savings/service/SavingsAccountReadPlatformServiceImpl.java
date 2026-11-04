@@ -192,9 +192,9 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         sqlBuilder.append(" join m_office o on o.id = c.office_id");
         sqlBuilder.append(" where o.hierarchy like ?");
 
-        final Object[] objectArray = new Object[2];
-        objectArray[0] = hierarchySearchString;
-        int arrayPos = 1;
+        final List<Object> queryParams = new ArrayList<>();
+        queryParams.add(hierarchySearchString);
+
         if (searchParameters != null) {
             String sqlQueryCriteria = searchParameters.getSqlSearch();
             if (StringUtils.isNotBlank(sqlQueryCriteria)) {
@@ -205,14 +205,24 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
 
             if (StringUtils.isNotBlank(searchParameters.getExternalId())) {
                 sqlBuilder.append(" and sa.external_id = ?");
-                objectArray[arrayPos] = searchParameters.getExternalId();
-                arrayPos = arrayPos + 1;
+                queryParams.add(searchParameters.getExternalId());
             }
+
             if (searchParameters.getOfficeId() != null) {
-                sqlBuilder.append("and c.office_id =?");
-                objectArray[arrayPos] = searchParameters.getOfficeId();
-                arrayPos = arrayPos + 1;
+                sqlBuilder.append(" and c.office_id = ?");
+                queryParams.add(searchParameters.getOfficeId());
             }
+
+            if (searchParameters.getBirthMonth() != null) {
+                sqlBuilder.append(" and month(c.date_of_birth) = ?");
+                queryParams.add(searchParameters.getBirthMonth());
+            }
+
+            if (searchParameters.getBirthDay() != null) {
+                sqlBuilder.append(" and day(c.date_of_birth) = ?");
+                queryParams.add(searchParameters.getBirthDay());
+            }
+
             if (searchParameters.isOrderByRequested()) {
                 sqlBuilder.append(" order by ").append(searchParameters.getOrderBy());
                 this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getOrderBy());
@@ -232,7 +242,8 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 }
             }
         }
-        final Object[] finalObjectArray = Arrays.copyOf(objectArray, arrayPos);
+
+        final Object[] finalObjectArray = queryParams.toArray(new Object[0]);
         return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), finalObjectArray, this.savingAccountMapper);
     }
 

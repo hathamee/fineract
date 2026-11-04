@@ -41,6 +41,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.io.InputStream;
+import java.time.Month;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,6 +57,7 @@ import org.apache.fineract.infrastructure.bulkimport.service.BulkImportWorkbookS
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.api.ApiRequestParameterHelper;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.data.UploadRequest;
 import org.apache.fineract.infrastructure.core.exception.UnrecognizedQueryParamException;
 import org.apache.fineract.infrastructure.core.serialization.ApiRequestJsonSerializationSettings;
@@ -124,6 +126,8 @@ public class SavingsAccountsApiResource {
     public String retrieveAll(@Context final UriInfo uriInfo,
             @QueryParam("sqlSearch") @Parameter(description = "sqlSearch") final String sqlSearch,
             @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
+            @QueryParam("birthMonth") @Parameter(description = "birthMonth") final Integer birthMonth,
+            @QueryParam("birthDay") @Parameter(description = "birthDay") final Integer birthDay,
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
             @QueryParam("limit") @Parameter(description = "limit") final Integer limit,
@@ -131,8 +135,25 @@ public class SavingsAccountsApiResource {
             @QueryParam("sortOrder") @Parameter(description = "sortOrder") final String sortOrder) {
 
         context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
+        final DataValidatorBuilder validator = new DataValidatorBuilder()
+                .resource(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
-        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder);
+        if (birthMonth != null) {
+            validator.reset().parameter("birthMonth").value(birthMonth)
+                    .inMinMaxRange(1, 12);
+        }
+        validator.throwValidationErrors();
+
+        if (birthDay != null) {
+            final int maxDaysInMonth = birthMonth == null ? 31 : Month.of(birthMonth).maxLength();
+
+            validator.reset().parameter("birthDay").value(birthDay).inMinMaxRange(1, maxDaysInMonth);
+        }
+        validator.throwValidationErrors();
+
+        final SearchParameters searchParameters = SearchParameters.forSavings(
+                sqlSearch, externalId, offset, limit, orderBy, sortOrder,
+                birthMonth, birthDay);
 
         final Page<SavingsAccountData> products = savingsAccountReadPlatformService.retrieveAll(searchParameters);
 
@@ -204,14 +225,16 @@ public class SavingsAccountsApiResource {
                 SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
     }
 
-    private SavingsAccountData populateTemplateAndAssociations(final Long accountId, final SavingsAccountData savingsAccount,
+    private SavingsAccountData populateTemplateAndAssociations(final Long accountId,
+            final SavingsAccountData savingsAccount,
             final boolean staffInSelectedOfficeOnly, final String chargeStatus, final UriInfo uriInfo,
             final Set<String> mandatoryResponseParameters) {
 
         Collection<SavingsAccountTransactionData> transactions = null;
         Collection<SavingsAccountChargeData> charges = null;
 
-        final Set<String> associationParameters = ApiParameterHelper.extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
+        final Set<String> associationParameters = ApiParameterHelper
+                .extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
         if (!associationParameters.isEmpty()) {
 
             if (associationParameters.contains("all")) {
@@ -230,7 +253,7 @@ public class SavingsAccountsApiResource {
             if (associationParameters.contains(SavingsApiConstants.charges)) {
                 mandatoryResponseParameters.add(SavingsApiConstants.charges);
                 final Collection<SavingsAccountChargeData> currentCharges = savingsAccountChargeReadPlatformService
-                        .retrieveSavingsAccountCharges(accountId, chargeStatus);
+                    .retrieveSavingsAccountCharges(accountId, chargeStatus);
                 if (!CollectionUtils.isEmpty(currentCharges)) {
                     charges = currentCharges;
                 }
@@ -241,7 +264,7 @@ public class SavingsAccountsApiResource {
         final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         if (settings.isTemplate()) {
             templateData = savingsAccountReadPlatformService.retrieveTemplate(savingsAccount.getClientId(), savingsAccount.getGroupId(),
-                    savingsAccount.getSavingsProductId(), staffInSelectedOfficeOnly);
+                savingsAccount.getSavingsProductId(), staffInSelectedOfficeOnly);
         }
 
         return SavingsAccountData.withTemplateOptions(savingsAccount, templateData, transactions, charges);
