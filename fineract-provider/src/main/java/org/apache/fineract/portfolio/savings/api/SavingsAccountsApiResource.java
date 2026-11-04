@@ -151,8 +151,7 @@ public class SavingsAccountsApiResource {
         if (birthDay != null) {
             final int maxDaysInMonth = birthMonth == null ? 31 : Month.of(birthMonth).maxLength();
 
-            validator.reset().parameter("birthDay").value(birthDay)
-                    .inMinMaxRange(1, maxDaysInMonth);
+            validator.reset().parameter("birthDay").value(birthDay).inMinMaxRange(1, maxDaysInMonth);
         }
         validator.throwValidationErrors();
 
@@ -265,8 +264,7 @@ public class SavingsAccountsApiResource {
 
             if (associationParameters.contains(SavingsApiConstants.charges)) {
                 mandatoryResponseParameters.add(SavingsApiConstants.charges);
-                final Collection<SavingsAccountChargeData> currentCharges = savingsAccountChargeReadPlatformService
-                        .retrieveSavingsAccountCharges(accountId, chargeStatus);
+                final Collection<SavingsAccountChargeData> currentCharges = savingsAccountChargeReadPlatformService.retrieveSavingsAccountCharges(accountId, chargeStatus);
                 if (!CollectionUtils.isEmpty(currentCharges)) {
                     charges = currentCharges;
                 }
@@ -274,12 +272,9 @@ public class SavingsAccountsApiResource {
         }
 
         SavingsAccountData templateData = null;
-        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper
-                .process(uriInfo.getQueryParameters());
+        final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         if (settings.isTemplate()) {
-            templateData = savingsAccountReadPlatformService.retrieveTemplate(savingsAccount.getClientId(),
-                    savingsAccount.getGroupId(),
-                    savingsAccount.getSavingsProductId(), staffInSelectedOfficeOnly);
+            templateData = savingsAccountReadPlatformService.retrieveTemplate(savingsAccount.getClientId(), savingsAccount.getGroupId(), savingsAccount.getSavingsProductId(), staffInSelectedOfficeOnly);
         }
 
         return SavingsAccountData.withTemplateOptions(savingsAccount, templateData, transactions, charges);
